@@ -28,16 +28,6 @@
             android:gravity="bottom"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/input_currency_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="4dp"
-                android:text="₫"
-                android:textColor="#000"
-                android:textSize="32sp"
-                android:textStyle="bold" />
-
             <EditText
                 android:id="@+id/input_currency"
                 android:layout_width="0dp"
@@ -66,16 +56,6 @@
             android:layout_height="60dp"
             android:gravity="bottom"
             android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/output_currency_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingBottom="4dp"
-                android:text="€"
-                android:textColor="#000"
-                android:textSize="32sp"
-                android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/output_currency"

@@ -10,12 +10,32 @@ import android.widget.EditText
 import android.widget.Spinner
 import androidx.activity.ComponentActivity
 
-
 class MainActivity : ComponentActivity() {
+
     private val exchangeRates = mapOf(
-        "VND" to 24000f,
         "USD" to 1f,
-        "EUR" to 0.9f
+        "VND" to 25953.4f,
+        "EUR" to 29681.0f,
+        "JPY" to 181.11f,
+        "GBP" to 34642.2f,
+        "CNY" to 3570.58f,
+        "KRW" to 18.09f,
+        "SGD" to 19801.9f,
+        "THB" to 769.0f,
+        "CHF" to 31430.7f
+    )
+
+    private val currencySymbols = mapOf(
+        "USD" to "$",
+        "VND" to "\u20AB", // ₫
+        "EUR" to "\u20AC", // €
+        "CNY" to "\u5143", // 元
+        "KRW" to "\u20A9", // ₩
+        "GBP" to "\u00A3", // £
+        "JPY" to "\u5186", // 円
+        "CHF" to "\u20A3", // ₣
+        "SGD" to "$",
+        "THB" to "\u0E3F" // ฿
     )
 
     private fun convertCurrency(amount: Float, from: String, to: String): Float {
@@ -29,54 +49,41 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
 
         var currentEditText: EditText? = null
-        var isProgrammaticChange = false
 
         val inputCurrency = findViewById<EditText>(R.id.input_currency)
         val outputCurrency = findViewById<EditText>(R.id.output_currency)
-
-        inputCurrency.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) currentEditText = inputCurrency
-        }
-
         val spinnerFrom: Spinner = findViewById(R.id.spinner_from)
         val spinnerTo: Spinner = findViewById(R.id.spinner_to)
 
-        val adapter = ArrayAdapter.createFromResource(
-            this,
-            R.array.currency_options,
-            android.R.layout.simple_spinner_item
-        ).also {
-            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
+        val currencyList = exchangeRates.keys.map { "$it (${currencySymbols[it] ?: ""})" }
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencyList)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerFrom.adapter = adapter
         spinnerTo.adapter = adapter
+
+        spinnerFrom.setSelection(currencyList.indexOfFirst { it.startsWith("USD") })
+        spinnerTo.setSelection(currencyList.indexOfFirst { it.startsWith("VND") })
 
         val buttonIds = intArrayOf(
             R.id.button_number_0, R.id.button_number_1, R.id.button_number_2,
             R.id.button_number_3, R.id.button_number_4, R.id.button_number_5,
-            R.id.button_number_6, R.id.button_number_7, R.id.button_number_8,
-            R.id.button_number_9
+            R.id.button_number_6, R.id.button_number_7, R.id.button_number_8, R.id.button_number_9
         )
-
         for (id in buttonIds) {
             val btn = findViewById<Button>(id)
-            btn.setOnClickListener {
-                val number = btn.text.toString()
-                currentEditText?.let {
-                    val current = it.text.toString()
-                    if (current == "0") {
-                        it.setText(number)
-                    } else {
-                        it.setText(current + number)
-                    }
+            btn.setOnClickListener { view ->
+                val number = (view as Button).text.toString()
+                currentEditText?.apply {
+                    val current = text.toString()
+                    setText(if (current == "0") number else current + number)
                 }
             }
         }
 
         findViewById<Button>(R.id.button_delete).setOnClickListener {
-            currentEditText?.let {
-                val current = it.text.toString()
-                it.setText(if (current.length > 1) current.dropLast(1) else "0")
+            currentEditText?.apply {
+                val current = text.toString()
+                setText(if (current.length > 1) current.dropLast(1) else "0")
             }
         }
 
@@ -84,50 +91,43 @@ class MainActivity : ComponentActivity() {
             currentEditText?.setText("0")
         }
 
+        inputCurrency.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) currentEditText = inputCurrency
+        }
+
+        outputCurrency.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) currentEditText = outputCurrency
+        }
+
         inputCurrency.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                if (isProgrammaticChange) return
-                val value = s.toString().toFloatOrNull()
-                if (value != null) {
-                    val fromCurrency = spinnerFrom.selectedItem.toString()
-                    val toCurrency = spinnerTo.selectedItem.toString()
-                    val result = convertCurrency(value, fromCurrency, toCurrency)
-                    Log.d("MyApp", "Giá trị sau chuyển đổi: $result")
-
-                    isProgrammaticChange = true
+                if (inputCurrency.hasFocus()) {
+                    val inputAmount = s.toString().toFloatOrNull() ?: 0f
+                    val from = spinnerFrom.selectedItem.toString().substringBefore(" ")
+                    val to = spinnerTo.selectedItem.toString().substringBefore(" ")
+                    val result = convertCurrency(inputAmount, from, to)
+                    Log.d("ConvertInput", "$inputAmount $from -> $result $to")
                     outputCurrency.setText(String.format("%.2f", result))
-                    isProgrammaticChange = false
-                } else {
-                    isProgrammaticChange = true
-                    outputCurrency.setText("Lỗi!")
-                    isProgrammaticChange = false
                 }
             }
-
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
 
-        outputCurrency.setOnFocusChangeListener { _, hasFocus ->
-            if (!hasFocus && !isProgrammaticChange) {
-                val outputText = outputCurrency.text.toString()
-                val amount = outputText.toFloatOrNull()
-
-                if (amount != null) {
-                    val fromCurrency = spinnerTo.selectedItem.toString()
-                    val toCurrency = spinnerFrom.selectedItem.toString()
-                    val result = convertCurrency(amount, fromCurrency, toCurrency)
-                    Log.d("ConvertResult", "Chuyển $amount $fromCurrency -> $toCurrency = $result")
-
-                    isProgrammaticChange = true
+        outputCurrency.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                if (outputCurrency.hasFocus()) {
+                    val outputAmount = s.toString().toFloatOrNull() ?: 0f
+                    val from = spinnerTo.selectedItem.toString().substringBefore(" ")
+                    val to = spinnerFrom.selectedItem.toString().substringBefore(" ")
+                    val result = convertCurrency(outputAmount, from, to)
+                    Log.d("ConvertOutput", "$outputAmount $from -> $result $to")
                     inputCurrency.setText(String.format("%.2f", result))
-                    isProgrammaticChange = false
-                } else {
-                    isProgrammaticChange = true
-                    inputCurrency.setText("Lỗi!")
-                    isProgrammaticChange = false
                 }
             }
-        }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
     }
 }
